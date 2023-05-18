@@ -35,3 +35,30 @@ def register(request):
     else:
         result = {'result': 0, 'message': r"请求方式错误！"}
         return JsonResponse(result)
+
+
+def login(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        if not User.objects.filter(username=username):
+            result = {'result': 0, 'message': r'查无此人！'}
+            return JsonResponse(result)
+        user = User.objects.get(username=username)
+        if user.password == password:
+            request.session['username'] = username
+            request.session.set_expiry(3600)
+            result = {'result': 0, 'message': r'登录成功！'}
+            return JsonResponse(result)
+        else:
+            result = {'result': 0, 'message': r'密码错误！'}
+            return JsonResponse(result)
+    else:
+        result = {'result': 0, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+
+def logout(request):
+    request.session.flush()
+    result = {'result': 0, 'message': r'注销成功！'}
+    return JsonResponse(result)
