@@ -8,6 +8,17 @@ class User(models.Model):
     email = models.EmailField()
     photo_url = models.CharField('用户头像路径', max_length=128, default='')
     bio = models.CharField('个人简介', max_length=256, default='')
+    followers = models.ManyToManyField('self', through='Follow', related_name='following',
+                                       symmetrical=False)
 
     class Meta:
         db_table = 'user'
+
+
+class Follow(models.Model):
+    follower = models.ForeignKey(User, on_delete=models.CASCADE, related_name='follower_set')
+    following = models.ForeignKey(User, on_delete=models.CASCADE, related_name='following_set')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('follower', 'following')
