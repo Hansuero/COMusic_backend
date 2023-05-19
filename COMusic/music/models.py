@@ -7,6 +7,9 @@ class Song(models.Model):
     song_name = models.CharField('歌曲名', max_length=30)
     song_url = models.CharField('歌曲路径', max_length=128, default='')
     song_tag = models.CharField('歌曲标签', max_length=256, default='')
+    song_cover_url = models.CharField('歌曲封面路径', max_length=128, default='')
+    singer = models.CharField('歌手名', max_length=30)
+    lyric = models.TextField('歌词')
 
     class Meta:
         db_table = 'song'

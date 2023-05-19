@@ -10,6 +10,7 @@ class User(models.Model):
     bio = models.CharField('个人简介', max_length=256, default='')
     followers = models.ManyToManyField('self', through='Follow', related_name='following',
                                        symmetrical=False)
+    is_admin = models.BooleanField('是否为管理员', default=False)
 
     class Meta:
         db_table = 'user'
