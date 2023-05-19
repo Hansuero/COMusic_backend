@@ -22,8 +22,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/user/', include(('user.urls', 'user'))),
     path('api/index/', include(('index.urls', 'index'))),
-    path('api/comment', include(('comment.urls', 'comment'))),
-    path('api/super_admin', include(('super_admin.urls', 'super_admin'))),
-    path('api/music', include(('music.urls', 'music')))
+    path('api/comment/', include(('comment.urls', 'comment'))),
+    path('api/super_admin/', include(('super_admin.urls', 'super_admin'))),
+    path('api/music/', include(('music.urls', 'music'))),
 
 ]
