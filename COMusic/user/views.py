@@ -1,6 +1,8 @@
 import re
 
 from django.http import JsonResponse
+from django.shortcuts import redirect
+
 from user.models import *
 
 
@@ -62,3 +64,20 @@ def logout(request):
     request.session.flush()
     result = {'result': 0, 'message': r'注销成功！'}
     return JsonResponse(result)
+
+
+def upload_bio(request):
+    if request.method == 'POST':
+        user = request.user
+        bio = request.POST.get('bio')
+        if len(bio) > 256:
+            result = {'result': 0, 'message': r'个人简介长度超过限制！'}
+            return JsonResponse(result)
+        user.bio = bio
+        user.save()
+        result = {'result': 0, 'message': r'上传成功！'}
+        return JsonResponse(result)
+        ##return redirect('profile')  # 重定向到用户的个人资料页面
+    else:
+        result = {'result': 0, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
