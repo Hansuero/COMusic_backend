@@ -9,4 +9,8 @@ urlpatterns = [
     path('login', login),
     path('logout', logout),
     path('upload_bio', upload_bio),
+    path('upload_photo', upload_photo),
+    path('show_following', show_following),
+    path('follow_user', follow_user),
+    path('unfollow_user', unfollow_user),
 ]
