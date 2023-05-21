@@ -13,4 +13,5 @@ urlpatterns = [
     path('show_following', show_following),
     path('follow_user', follow_user),
     path('unfollow_user', unfollow_user),
+    path('get_user_info', get_user_info),
 ]

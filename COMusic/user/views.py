@@ -190,3 +190,17 @@ def unfollow_user(request):
     else:
         result = {'result': 0, 'message': r'请求方式错误！'}
         return JsonResponse(result)
+
+
+def get_user_info(request):
+    if request.method == 'GET':
+        user_id = request.GET.get('user_id')
+        result1 = User.objects.get(id=user_id).to_simple_dic()
+        message = {'code': 0, 'message': "返回成功"}
+        result = result1.items()
+
+        return JsonResponse(result)
+
+    else:
+        result = {'result': 0, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
