@@ -122,7 +122,7 @@ def show_following(request):
         username = request.session['username']
         user = User.objects.get(username=username)
         following = Follow.objects.filter(follower=user)
-        following_list = [follow.following.username for follow in following]
+        following_list = [{'username': follow.following.username, 'user_id': follow.following.id} for follow in following]
 
         result = {'result': 1, 'message': r'获取关注列表成功！', 'following': following_list}
         return JsonResponse(result)
@@ -195,12 +195,11 @@ def unfollow_user(request):
 def get_user_info(request):
     if request.method == 'GET':
         user_id = request.GET.get('user_id')
-        result1 = User.objects.get(id=user_id).to_simple_dic()
+        result = User.objects.get(id=user_id).to_simple_dic()
         message = {'code': 0, 'message': "返回成功"}
-        result = result1.items()
-
         return JsonResponse(result)
 
     else:
         result = {'result': 0, 'message': r'请求方式错误！'}
         return JsonResponse(result)
+
