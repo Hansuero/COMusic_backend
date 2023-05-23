@@ -18,24 +18,24 @@ def register(request):
         password2 = request.POST.get('password2', '')
 
         if len(username) == 0 or len(password1) == 0 or len(password2) == 0:
-            result = {'result': 2, 'message': r'用户名与密码不允许为空!'}
+            result = {'result': 2, 'message': r'用户名与密码不允许为空！'}
             return JsonResponse(result)
 
         if User.objects.filter(username=username).exists():
-            result = {'result': 3, 'message': r'用户已存在!'}
+            result = {'result': 3, 'message': r'用户已存在！'}
             return JsonResponse(result)
 
         if password1 != password2:
-            result = {'result': 4, 'message': r'两次密码不一致!'}
+            result = {'result': 4, 'message': r'两次密码不一致！'}
             return JsonResponse(result)
 
         email = request.POST.get('email', '')
 
         if len(email) == 0:
-            result = {'result': 5, 'message': r'邮箱不允许为空!'}
+            result = {'result': 5, 'message': r'邮箱不允许为空！'}
             return JsonResponse(result)
         User.objects.create(username=username, password=password1, email=email)
-        result = {'result': 0, 'message': r'注册成功!'}
+        result = {'result': 0, 'message': r'注册成功！'}
         return JsonResponse(result)
     else:
         result = {'result': 1, 'message': r"请求方式错误！"}
