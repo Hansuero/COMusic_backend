@@ -18,27 +18,27 @@ def register(request):
         password2 = request.POST.get('password2', '')
 
         if len(username) == 0 or len(password1) == 0 or len(password2) == 0:
-            result = {'result': 0, 'message': r'用户名与密码不允许为空!'}
+            result = {'result': 2, 'message': r'用户名与密码不允许为空!'}
             return JsonResponse(result)
 
         if User.objects.filter(username=username).exists():
-            result = {'result': 0, 'message': r'用户已存在!'}
+            result = {'result': 3, 'message': r'用户已存在!'}
             return JsonResponse(result)
 
         if password1 != password2:
-            result = {'result': 0, 'message': r'两次密码不一致!'}
+            result = {'result': 4, 'message': r'两次密码不一致!'}
             return JsonResponse(result)
 
         email = request.POST.get('email', '')
 
         if len(email) == 0:
-            result = {'result': 0, 'message': r'邮箱不允许为空!'}
+            result = {'result': 5, 'message': r'邮箱不允许为空!'}
             return JsonResponse(result)
         User.objects.create(username=username, password=password1, email=email)
         result = {'result': 0, 'message': r'注册成功!'}
         return JsonResponse(result)
     else:
-        result = {'result': 0, 'message': r"请求方式错误！"}
+        result = {'result': 1, 'message': r"请求方式错误！"}
         return JsonResponse(result)
 
 
@@ -47,7 +47,7 @@ def login(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         if not User.objects.filter(username=username):
-            result = {'result': 0, 'message': r'查无此人！'}
+            result = {'result': 2, 'message': r'查无此人！'}
             return JsonResponse(result)
         user = User.objects.get(username=username)
         if user.password == password:
@@ -56,10 +56,10 @@ def login(request):
             result = {'result': 0, 'message': r'登录成功！'}
             return JsonResponse(result)
         else:
-            result = {'result': 0, 'message': r'密码错误！'}
+            result = {'result': 3, 'message': r'密码错误！'}
             return JsonResponse(result)
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
 
@@ -74,7 +74,7 @@ def upload_intro(request):
         user = request.user
         intro = request.POST.get('intro')
         if len(intro) > 256:
-            result = {'result': 0, 'message': r'个人简介长度超过限制！'}
+            result = {'result': 2, 'message': r'个人简介长度超过限制！'}
             return JsonResponse(result)
         user.intro = intro
         user.save()
@@ -82,13 +82,13 @@ def upload_intro(request):
         return JsonResponse(result)
         ##return redirect('profile')  # 重定向到用户的个人资料页面
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
 
 def upload_photo(request):
     if 'username' not in request.session:  # 检查用户是否已登录
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
     if request.method == 'POST':
         username = request.session['username']
@@ -110,30 +110,30 @@ def upload_photo(request):
             result = {'result': 0, 'message': r'上传头像成功！'}
             return JsonResponse(result)
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
 
 def show_following(request):
     if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
     if request.method == 'GET':
         username = request.session['username']
         user = User.objects.get(username=username)
         following = Follow.objects.filter(follower=user)
-        following_list = [{'username': follow.following.username, 'user_id': follow.following.id} for follow in following]
+        following_list = [{'username': follow.following.username, 'user_id': follow.following.id, 'photo_url': follow.following.photo_url} for follow in following]
 
-        result = {'result': 1, 'message': r'获取关注列表成功！', 'following': following_list}
+        result = {'result': 0, 'message': r'获取关注列表成功！', 'following': following_list}
         return JsonResponse(result)
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
 
 def follow_user(request):
     if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
 
     if request.method == 'POST':
@@ -144,7 +144,7 @@ def follow_user(request):
         try:
             following_user = User.objects.get(username=following_username)
         except User.DoesNotExist:
-            result = {'result': 0, 'message': r'用户不存在！'}
+            result = {'result': 3, 'message': r'用户不存在！'}
             return JsonResponse(result)
 
         if Follow.objects.filter(follower=user, following=following_user).exists():
@@ -154,16 +154,16 @@ def follow_user(request):
         # 创建关注关系
         follow = Follow.objects.create(follower=user, following=following_user)
 
-        result = {'result': 1, 'message': r'成功关注用户！'}
+        result = {'result': 0, 'message': r'成功关注用户！'}
         return JsonResponse(result)
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
 
 def unfollow_user(request):
     if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
 
     if request.method == 'POST':
@@ -174,21 +174,21 @@ def unfollow_user(request):
         try:
             following_user = User.objects.get(username=following_username)
         except User.DoesNotExist:
-            result = {'result': 0, 'message': r'用户不存在！'}
+            result = {'result': 3, 'message': r'用户不存在！'}
             return JsonResponse(result)
 
         follow = Follow.objects.filter(follower=user, following=following_user).first()
         if not follow:
-            result = {'result': 0, 'message': r'未关注该用户！'}
+            result = {'result': 4, 'message': r'未关注该用户！'}
             return JsonResponse(result)
 
         # 取消关注
         follow.delete()
 
-        result = {'result': 1, 'message': r'成功取消关注！'}
+        result = {'result': 0, 'message': r'成功取消关注！'}
         return JsonResponse(result)
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
 
@@ -196,11 +196,11 @@ def get_user_info(request):
     if request.method == 'GET':
         username = request.session['username']
         result = User.objects.get(username=username).to_simple_dic()
-        message = {'code': 0, 'message': "返回成功"}
+        message = {'result': 0, 'message': r"返回成功"}
         return JsonResponse(result)
 
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
 
@@ -208,10 +208,10 @@ def get_other_info(request):
     if request.method == 'GET':
         user_id = request.GET.get('user_id')
         result = User.objects.get(id=user_id).to_simple_dic()
-        message = {'code': 0, 'message': "返回成功"}
+        message = {'result': 0, 'message': r"返回成功"}
         return JsonResponse(result)
 
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
