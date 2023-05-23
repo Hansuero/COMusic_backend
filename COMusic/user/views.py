@@ -192,7 +192,7 @@ def unfollow_user(request):
         return JsonResponse(result)
 
 
-def get_user_info(request):
+def get_other_info(request):
     if request.method == 'GET':
         user_id = request.GET.get('user_id')
         result = User.objects.get(id=user_id).to_simple_dic()
