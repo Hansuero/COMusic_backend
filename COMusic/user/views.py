@@ -192,6 +192,18 @@ def unfollow_user(request):
         return JsonResponse(result)
 
 
+def get_user_info(request):
+    if request.method == 'GET':
+        username = request.session['username']
+        result = User.objects.get(username=username).to_simple_dic()
+        message = {'code': 0, 'message': "返回成功"}
+        return JsonResponse(result)
+
+    else:
+        result = {'result': 0, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+
 def get_other_info(request):
     if request.method == 'GET':
         user_id = request.GET.get('user_id')
