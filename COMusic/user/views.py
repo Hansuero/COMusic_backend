@@ -72,11 +72,11 @@ def logout(request):
 def upload_intro(request):
     if request.method == 'POST':
         user = request.user
-        bio = request.POST.get('bio')
-        if len(bio) > 256:
+        intro = request.POST.get('intro')
+        if len(intro) > 256:
             result = {'result': 0, 'message': r'个人简介长度超过限制！'}
             return JsonResponse(result)
-        user.bio = bio
+        user.intro = intro
         user.save()
         result = {'result': 0, 'message': r'上传成功！'}
         return JsonResponse(result)
