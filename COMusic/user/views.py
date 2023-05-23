@@ -69,7 +69,7 @@ def logout(request):
     return JsonResponse(result)
 
 
-def upload_bio(request):
+def upload_intro(request):
     if request.method == 'POST':
         user = request.user
         bio = request.POST.get('bio')
