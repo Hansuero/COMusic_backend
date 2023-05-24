@@ -57,7 +57,7 @@ def delete_song(request):
         result = {'result': 0, 'message': r'尚未登录！'}
         return JsonResponse(result)
 
-    if request.method == 'DELETE':
+    if request.method == 'DELETE ':
         username = request.session['username']
         user = User.objects.get(username=username)
         song_name = request.POST.get('song_name')
@@ -96,6 +96,20 @@ def create_new_favo(request):
         new_favo = Playlist.objects.create(user=user, playlist_name=playlist_name)
         result = {'result': 0, 'message': r'创建收藏夹成功！', 'favo_id': new_favo.id,
                   'favo_title': new_favo.playlist_name}
+        return JsonResponse(result)
+    else:
+        result = {'result': 1, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+def get_favo_list(request):
+    if 'username' not in request.session:
+        result = {'result': 2, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+    if request.method == 'GET':
+        user = User.objects.get(username=request.session['username'])
+        playlists = Playlist.objects.filter(user=user)
+        playlists_data = [{'favo_id': p.id, 'favo_title': p.playlist_name} for p in playlists]
+        result = {'result': 0, 'message': r'获取收藏夹成功！', 'playlists': playlists_data}
         return JsonResponse(result)
     else:
         result = {'result': 1, 'message': r'请求方式错误！'}
