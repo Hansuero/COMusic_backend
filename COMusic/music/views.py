@@ -57,7 +57,7 @@ def delete_song(request):
         result = {'result': 0, 'message': r'尚未登录！'}
         return JsonResponse(result)
 
-    if request.method == 'POST':
+    if request.method == 'DELETE':
         username = request.session['username']
         user = User.objects.get(username=username)
         song_name = request.POST.get('song_name')

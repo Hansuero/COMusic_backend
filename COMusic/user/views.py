@@ -166,7 +166,7 @@ def unfollow_user(request):
         result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
 
-    if request.method == 'POST':
+    if request.method == 'DELETE':
         username = request.session['username']
         user = User.objects.get(username=username)
         following_username = request.POST.get('following_username')
