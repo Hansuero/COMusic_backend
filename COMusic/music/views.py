@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 
 from COMusic.settings import BASE_DIR
-from music.models import Song, UserUploadSong
+from music.models import Song, UserUploadSong, Playlist
 from user.models import User
 
 
@@ -21,7 +21,7 @@ def upload_song(request):
         song_tag = request.POST.get('song_tag')
         song_cover = request.FILES.get('song_cover')
         singer = request.POST.get('singer')
-        lyric = request.POST.get('lyric', '')   # 默认为空
+        lyric = request.POST.get('lyric', '')  # 默认为空
         song_file = request.FILES.get('song_file')  # 获取上传的歌曲文件
 
         if song_file:  # 如果上传了歌曲文件
@@ -83,4 +83,20 @@ def delete_song(request):
             return JsonResponse(result)
     else:
         result = {'result': 0, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+
+def create_new_favo(request):
+    if 'username' not in request.session:
+        result = {'result': 2, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+    if request.method == 'POST':
+        playlist_name = request.POST.get('favo_title')
+        user = User.objects.get(username=request.session['username'])
+        new_favo = Playlist.objects.create(user=user, playlist_name=playlist_name)
+        result = {'result': 0, 'message': r'创建收藏夹成功！', 'favo_id': new_favo.id,
+                  'favo_title': new_favo.playlist_name}
+        return JsonResponse(result)
+    else:
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
