@@ -2,9 +2,10 @@ import os
 
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.utils import timezone
 
 from COMusic.settings import BASE_DIR
-from music.models import Song, UserUploadSong, Playlist, PlaylistSong
+from music.models import Song, UserUploadSong, Playlist, PlaylistSong, RecentPlay
 from user.models import User
 
 
@@ -181,3 +182,35 @@ def get_songs_in_favo(request):
         result = {'result': 0, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
+def add_to_recent(request):
+    if 'username' not in request.session:
+        result = {'result': 0, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+
+    if request.method == 'POST':
+        user = User.objects.get(username=request.session['username'])
+        song_id = request.POST.get('song_id')
+
+        try:
+            song = Song.objects.get(id=song_id)
+        except Song.DoesNotExist:
+            result = {'result': 0, 'message': r'歌曲不存在！'}
+            return JsonResponse(result)
+
+        # Check if the song is already in the recent play
+        recent_play = RecentPlay.objects.filter(user=user, song=song).first()
+
+        if recent_play:
+            # Song is already in recent play, update the play date
+            recent_play.play_date = timezone.now()
+            recent_play.save()
+            result = {'result': 1, 'message': r'歌曲已更新到最近播放！', 'recent_play_id': recent_play.id}
+        else:
+            # Song is not in recent play, create a new entry
+            recent_play = RecentPlay.objects.create(user=user, song=song)
+            result = {'result': 1, 'message': r'歌曲添加到最近播放成功！', 'recent_play_id': recent_play.id}
+
+        return JsonResponse(result)
+    else:
+        result = {'result': 0, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
