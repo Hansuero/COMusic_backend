@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 
 from COMusic.settings import BASE_DIR
-from music.models import Song, UserUploadSong, Playlist
+from music.models import Song, UserUploadSong, Playlist, PlaylistSong
 from user.models import User
 
 
@@ -21,29 +21,36 @@ def upload_song(request):
         song_tag = request.POST.get('song_tag')
         song_cover = request.FILES.get('song_cover')
         singer = request.POST.get('singer')
+        if singer == '':
+            singer = '佚名'
         lyric = request.POST.get('lyric', '')  # 默认为空
         song_file = request.FILES.get('song_file')  # 获取上传的歌曲文件
 
         if song_file:  # 如果上传了歌曲文件
             _, ext = os.path.splitext(song_file.name)
             # 生成歌曲文件的保存路径
-            song_path = os.path.join(BASE_DIR, 'song', f'{user.id}_song{ext}')
-
+            song = Song.objects.create(song_name=song_name, song_tag=song_tag, lyric=lyric,
+                                       singer=singer)
+            song_path = os.path.join(BASE_DIR, 'song', f'{song.id}_song{ext}')
+            song.song_url = song_path
+            song.save()
             # 保存歌曲文件到指定路径
             with open(song_path, 'wb') as file:
                 for chunk in song_file.chunks():
                     file.write(chunk)
-            song = Song.objects.create(song_name=song_name, song_tag=song_tag, song_url=song_path, lyric=lyric,
-                                       singer=singer)
+
             if song_cover:  # 如果上传了封面
                 _, ext = os.path.splitext(song_cover.name)
-                song_cover_path = os.path.join(BASE_DIR, 'song_cover', f'{song_name}_song_cover{ext}')
+                song_cover_path = os.path.join(BASE_DIR, 'song_cover', f'{song.id}_song_cover{ext}')
                 song.song_cover_url = song_cover_path
                 song.save()
 
                 with open(song_cover_path, 'wb') as file:
                     for chunk in song_cover.chunks():
                         file.write(chunk)
+            else:
+                song.song_cover_url = os.path.join(BASE_DIR, 'song_cover', 'default.jpg')
+                song.save()
             UserUploadSong.objects.create(user=user, song=song)
             result = {'result': 0, 'message': r'上传歌曲成功！'}
             return JsonResponse(result)
@@ -114,3 +121,63 @@ def get_favo_list(request):
     else:
         result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
+
+def add_song_to_favo(request):
+    if 'username' not in request.session:
+        result = {'result': 0, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+
+    if request.method == 'POST':
+        user = User.objects.get(username=request.session['username'])
+        song_id = request.POST.get('song_id')
+        playlist_id = request.POST.get('playlist_id')
+
+        try:
+            song = Song.objects.get(id=song_id)
+            playlist = Playlist.objects.get(id=playlist_id)
+            if playlist.user.id != user.id:
+                result = {'result': 0, 'message': r'您的名下不存在该歌单！'}
+                return JsonResponse(result)
+        except (Song.DoesNotExist, Playlist.DoesNotExist):
+            result = {'result': 0, 'message': r'歌曲或歌单不存在！'}
+            return JsonResponse(result)
+
+        playlist_song = PlaylistSong.objects.create(playlist=playlist, song=song)
+        result = {'result': 1, 'message': r'歌曲添加到歌单成功！', 'playlist_song_id': playlist_song.id}
+        return JsonResponse(result)
+    else:
+        result = {'result': 0, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+
+def get_songs_in_favo(request):
+    if 'username' not in request.session:
+        result = {'result': 0, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+
+    if request.method == 'GET':
+        user = User.objects.get(username=request.session['username'])
+        favo_id = request.GET.get('favo_id')
+        try:
+            playlist = Playlist.objects.get(id=favo_id)
+        except Playlist.DoesNotExist:
+            result = {'result': 0, 'message': r'收藏夹不存在！'}
+            return JsonResponse(result)
+        if playlist.user.id != user.id:
+            result = {'result': 0, 'message': r'不是你的歌单！'}
+            return JsonResponse(result)
+        playlist_songs = PlaylistSong.objects.filter(playlist=playlist).values('song_id', 'song__song_name', 'song__singer')
+        songs_data = [
+            {
+                'song_id': song['song_id'],
+                'song_name': song['song__song_name'],
+                'singer': song['song__singer']
+            }
+            for song in playlist_songs
+        ]
+        result = {'result': 1, 'message': r'获取收藏夹歌曲列表成功！', 'songs': songs_data}
+        return JsonResponse(result)
+    else:
+        result = {'result': 0, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+

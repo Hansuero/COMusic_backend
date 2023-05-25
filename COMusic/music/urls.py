@@ -9,5 +9,6 @@ urlpatterns = [
     path('delete_song', delete_song),
     path('create_new_favo', create_new_favo),
     path('get_favo_list',get_favo_list),
-
+    path('add_song_to_favo', add_song_to_favo),
+    path('get_songs_in_favo', get_songs_in_favo)
 ]
