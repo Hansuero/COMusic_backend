@@ -6,9 +6,6 @@ from user.models import User
 
 # Create your views here.
 def search_song(request):
-    if 'username' not in request.session:
-        result = {'result': 2, 'message': r'尚未登录！'}
-        return JsonResponse(result)
     if request.method == 'GET':
         song_name = request.GET.get('song_name')
         if song_name:
@@ -29,9 +26,6 @@ def search_song(request):
 
 
 def search_playlist(request):
-    if 'username' not in request.session:
-        result = {'result': 2, 'message': r'尚未登录！'}
-        return JsonResponse(result)
     if request.method == 'GET':
         playlist_name = request.GET.get('playlist_name')
         if playlist_name:
@@ -50,10 +44,8 @@ def search_playlist(request):
         result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
+
 def search_user(request):
-    if 'username' not in request.session:
-        result = {'result': 2, 'message': r'尚未登录！'}
-        return JsonResponse(result)
     if request.method == 'GET':
         username = request.GET.get('username')
         if username:
