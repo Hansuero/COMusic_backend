@@ -21,6 +21,7 @@ class Playlist(models.Model):
     is_shared = models.BooleanField('是否共享', default=False)
     playlist_tag = models.CharField('歌单标签', max_length=256, default='')
     playlist_cover = models.CharField('歌单封面路径', max_length=128, default='')
+
     class Meta:
         db_table = 'playlist'
 
@@ -40,3 +41,12 @@ class UserUploadSong(models.Model):
 
     class Meta:
         db_table = 'user_upload_song'
+
+
+class RecentPlay(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    song = models.ForeignKey(Song, on_delete=models.CASCADE)
+    play_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'recent_play'
