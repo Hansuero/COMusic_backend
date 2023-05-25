@@ -11,6 +11,15 @@ class Song(models.Model):
     singer = models.CharField('歌手名', max_length=30, default='佚名')
     lyric = models.TextField('歌词')
 
+    def to_dic(self):
+        result = {
+            'song_id': self.id,
+            'song_name': self.song_name,
+            'song_cover_url': self.song_cover_url,
+            'singer': self.singer,
+
+        }
+        return result
     class Meta:
         db_table = 'song'
 
