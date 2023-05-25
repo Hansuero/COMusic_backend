@@ -12,21 +12,11 @@ class User(models.Model):
                                        symmetrical=False)
     is_admin = models.BooleanField('是否为管理员', default=False)
 
-    def to_simple_dic(self):
-        return {
-            "id": self.id,
-            "username": self.username,
-            "photo_url": self.photo_url,
-        }
-
     def to_dic(self):
         return {
-            "id": self.id,
+            "user_id": self.id,
             "username": self.username,
-            "email": self.email,
-            'photo_url': self.photo_url,
-            'intro': self.intro,
-            "is_admin": self.is_admin,
+            "photo_url": self.photo_url,
         }
 
     def __str__(self):
