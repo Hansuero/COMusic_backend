@@ -109,6 +109,7 @@ def create_new_favo(request):
         result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
+
 def get_favo_list(request):
     if 'username' not in request.session:
         result = {'result': 2, 'message': r'尚未登录！'}
@@ -122,6 +123,7 @@ def get_favo_list(request):
     else:
         result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
+
 
 def add_song_to_favo(request):
     if 'username' not in request.session:
@@ -167,7 +169,8 @@ def get_songs_in_favo(request):
         if playlist.user.id != user.id:
             result = {'result': 0, 'message': r'不是你的歌单！'}
             return JsonResponse(result)
-        playlist_songs = PlaylistSong.objects.filter(playlist=playlist).values('song_id', 'song__song_name', 'song__singer')
+        playlist_songs = PlaylistSong.objects.filter(playlist=playlist).values('song_id', 'song__song_name',
+                                                                               'song__singer')
         songs_data = [
             {
                 'song_id': song['song_id'],
@@ -181,6 +184,7 @@ def get_songs_in_favo(request):
     else:
         result = {'result': 0, 'message': r'请求方式错误！'}
         return JsonResponse(result)
+
 
 def add_to_recent(request):
     if 'username' not in request.session:

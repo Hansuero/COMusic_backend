@@ -80,7 +80,7 @@ def upload_intro(request):
         user.save()
         result = {'result': 0, 'message': r'上传成功！'}
         return JsonResponse(result)
-        ##return redirect('profile')  # 重定向到用户的个人资料页面
+        # return redirect('profile')  # 重定向到用户的个人资料页面
     else:
         result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
@@ -195,8 +195,8 @@ def unfollow_user(request):
 def get_user_info(request):
     if request.method == 'GET':
         username = request.session['username']
-        result = User.objects.get(username=username).to_simple_dic()
-        message = {'result': 0, 'message': r"返回成功"}
+        user_data = User.objects.get(username=username).to_dic()
+        result = {'result': 0, 'message': r"返回成功", 'user_data': user_data}
         return JsonResponse(result)
 
     else:
@@ -207,8 +207,8 @@ def get_user_info(request):
 def get_other_info(request):
     if request.method == 'GET':
         user_id = request.GET.get('user_id')
-        result = User.objects.get(id=user_id).to_simple_dic()
-        message = {'result': 0, 'message': r"返回成功"}
+        user_data = User.objects.get(id=user_id).to_simple_dic()
+        result = {'result': 0, 'message': r"返回成功", 'user_data': user_data}
         return JsonResponse(result)
 
     else:
