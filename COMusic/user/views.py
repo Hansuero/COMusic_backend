@@ -34,7 +34,8 @@ def register(request):
         if len(email) == 0:
             result = {'result': 5, 'message': r'邮箱不允许为空！'}
             return JsonResponse(result)
-        User.objects.create(username=username, password=password1, email=email)
+        photo_url = os.path.join(BASE_DIR, 'photo', 'default.jpg')
+        User.objects.create(username=username, password=password1, email=email, photo_url=photo_url)
         result = {'result': 0, 'message': r'注册成功！'}
         return JsonResponse(result)
     else:

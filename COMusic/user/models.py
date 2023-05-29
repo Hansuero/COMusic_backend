@@ -11,6 +11,7 @@ class User(models.Model):
     followers = models.ManyToManyField('self', through='Follow', related_name='following',
                                        symmetrical=False)
     is_admin = models.BooleanField('是否为管理员', default=False)
+    recent_play_max = models.IntegerField('最近播放量的最大值', default=0)
 
     def to_dic(self):
         return {
