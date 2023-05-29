@@ -1,5 +1,6 @@
 import os
 
+from django.db.models import Count
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
@@ -214,6 +215,96 @@ def add_to_recent(request):
             recent_play = RecentPlay.objects.create(user=user, song=song)
             result = {'result': 1, 'message': r'歌曲添加到最近播放成功！', 'recent_play_id': recent_play.id}
 
+        return JsonResponse(result)
+    else:
+        result = {'result': 0, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+
+def post_max(request):
+    if 'username' not in request.session:
+        result = {'result': 0, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+
+    if request.method == 'POST':
+        user = User.objects.get(username=request.session['username'])
+        max_recent_play_count = request.POST.get('max')
+
+        try:
+            # Convert the value from string to integer
+            max_recent_play_count = int(max_recent_play_count)
+            # Check if the value is valid
+            if max_recent_play_count <= 0:
+                raise ValueError("The value must be a positive integer")
+        except ValueError as e:
+            result = {'result': 0, 'message': r'最近播放最大数量必须是正整数！'}
+            return JsonResponse(result)
+
+        # Update the user's max recent play count
+        user.recent_play_max = max_recent_play_count
+        user.save()
+        result = {'result': 1, 'message': r'设置最近播放最大数量成功！', 'recent_play_max': max_recent_play_count}
+        return JsonResponse(result)
+    else:
+        result = {'result': 0, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+
+def get_record_list(request):
+    if 'username' not in request.session:
+        result = {'result': 0, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+
+    if request.method == 'GET':
+        user = User.objects.get(username=request.session['username'])
+
+        if user.recent_play_max == 0:
+            result = {'result': 0, 'message': r'请设置最近播放的数量！'}
+            return JsonResponse(result)
+
+        recent_plays = RecentPlay.objects.filter(user=user).order_by('-play_date')
+        song_count = recent_plays.aggregate(Count('id'))['id__count']
+        max_play_count = user.recent_play_max
+
+        if song_count <= max_play_count:
+            recent_plays_data = recent_plays.values('song_id', 'song__song_name', 'song__singer')
+        else:
+            recent_plays_data = recent_plays[:max_play_count].values('song_id', 'song__song_name', 'song__singer')
+
+        recent_plays_data_list = [
+            {
+                'song_id': recent_play['song_id'],
+                'song_name': recent_play['song__song_name'],
+                'singer': recent_play['song__singer']
+            }
+            for recent_play in recent_plays_data
+        ]
+
+        result = {'result': 1, 'message': r'获取最近播放列表成功！', 'recent_plays': recent_plays_data_list}
+        return JsonResponse(result)
+    else:
+        result = {'result': 0, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+def get_uploaded_list(request):
+    if 'username' not in request.session:
+        result = {'result': 0, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+
+    if request.method == 'GET':
+        username = request.session['username']
+        user = User.objects.get(username=username)
+        user_upload_songs = UserUploadSong.objects.filter(user=user).values('song_id', 'song__song_name', 'song__singer')
+
+        songs_data = [
+            {
+                'song_id': song['song_id'],
+                'song_name': song['song__song_name'],
+                'singer': song['song__singer']
+            }
+            for song in user_upload_songs
+        ]
+        result = {'result': 1, 'message': r'获取用户上传的歌曲列表成功！', 'songs': songs_data}
         return JsonResponse(result)
     else:
         result = {'result': 0, 'message': r'请求方式错误！'}

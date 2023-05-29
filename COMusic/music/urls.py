@@ -12,4 +12,8 @@ urlpatterns = [
     path('add_song_to_favo', add_song_to_favo),
     path('get_songs_in_favo', get_songs_in_favo),
     path('add_to_recent', add_to_recent),
+    path('post_max', post_max),
+    path('get_record_list', get_record_list),
+    path('get_uploaded_list', get_uploaded_list),
+
 ]
