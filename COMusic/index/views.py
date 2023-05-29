@@ -63,3 +63,45 @@ def search_user(request):
     else:
         result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
+
+
+def get_recommend_song(request):
+    if request.method == 'GET':
+        song_tag = request.GET.get('song_tag')
+        if song_tag:
+            # 获取 10 个符合tag的歌曲列表
+            song_list = Song.objects.filter(song_tag=song_tag)[0:10]
+            if song_list:
+                song_data = [s.to_simple_dic() for s in song_list]
+                result = {'result': 0, 'message': r'返回推荐列表成功！', 'song_data': song_data}
+                return JsonResponse(result)
+            else:
+                result = {'result': 3, 'message': r'无结果！'}
+                return JsonResponse(result)
+        else:
+            result = {'result': 2, 'message': r'标签不能为空！'}
+            return JsonResponse(result)
+    else:
+        result = {'result': 1, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+
+def get_recommend_playlist(request):
+    if request.method == 'GET':
+        playlist_tag = request.GET.get('playlist_tag')
+        if playlist_tag:
+            # 获取 10 个符合tag的歌单列表
+            playlist_list = Playlist.objects.filter(playlist_tag=playlist_tag)[0:10]
+            if playlist_list:
+                playlist_data = [p.to_simple_dic() for p in playlist_list]
+                result = {'result': 0, 'message': r'返回推荐列表成功！', 'playlist_data': playlist_data}
+                return JsonResponse(result)
+            else:
+                result = {'result': 3, 'message': r'无结果！'}
+                return JsonResponse(result)
+        else:
+            result = {'result': 2, 'message': r'标签不能为空！'}
+            return JsonResponse(result)
+    else:
+        result = {'result': 1, 'message': r'请求方式错误！'}
+        return JsonResponse(result)

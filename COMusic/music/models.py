@@ -20,6 +20,14 @@ class Song(models.Model):
 
         }
         return result
+
+    def to_simple_dic(self):
+        result = {
+            'song_id': self.id,
+            'song_cover_url': self.song_cover_url,
+        }
+        return result
+
     class Meta:
         db_table = 'song'
 
@@ -39,6 +47,14 @@ class Playlist(models.Model):
             'playlist_tag': self.playlist_tag,
             'playlist_cover_url': self.playlist_cover_url,
         }
+        return result
+
+    def to_simple_dic(self):
+        result = {
+            'playlist_id': self.id,
+            'playlist_cover_url': self.playlist_cover_url,
+        }
+        return result
 
     class Meta:
         db_table = 'playlist'

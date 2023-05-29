@@ -8,4 +8,6 @@ urlpatterns = [
     path('search_song', search_song),
     path('search_playlist', search_playlist),
     path('search_user', search_user),
+    path('get_recommend_song', get_recommend_song),
+    path('get_recommend_playlist', get_recommend_playlist),
 ]
