@@ -8,11 +8,11 @@ from user.models import User
 # Create your models here.
 
 
-class Message(models.Model):  # 举报信息
-    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports_sent')  # 发送方
-    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports_received')  # 管理员，作为举报信息的接收者
+class Report(models.Model):  # 举报信息
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports_sender')  # 发送方
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports_receiver')  # 管理员，作为举报信息的接收者
     content = models.TextField(max_length=200)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'message'
+        db_table = 'report'
