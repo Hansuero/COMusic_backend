@@ -8,7 +8,7 @@ urlpatterns = [
     path('upload_song', upload_song),
     path('delete_song', delete_song),
     path('create_new_favo', create_new_favo),
-    path('get_favo_list',get_favo_list),
+    path('get_favo_list', get_favo_list),
     path('add_song_to_favo', add_song_to_favo),
     path('get_songs_in_favo', get_songs_in_favo),
     path('add_to_recent', add_to_recent),

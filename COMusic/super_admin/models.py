@@ -14,5 +14,13 @@ class Report(models.Model):  # 举报信息
     content = models.TextField(max_length=200)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def to_dic(self):
+        result = {
+            'report_id': self.id,
+            'sender': self.sender.username,
+            'time': self.created_at,
+            'content': self.content,
+        }
+        return result
     class Meta:
         db_table = 'report'

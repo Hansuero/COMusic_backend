@@ -8,6 +8,7 @@ from django.utils import timezone
 from COMusic.settings import BASE_DIR
 from music.models import Song, UserUploadSong, Playlist, PlaylistSong, RecentPlay
 from user.models import User
+from utils.utils import *
 
 
 # Create your views here.
@@ -66,13 +67,13 @@ def delete_song(request):
         result = {'result': 0, 'message': r'尚未登录！'}
         return JsonResponse(result)
 
-    if request.method == 'DELETE ':
+    if request.method == 'DELETE':
         username = request.session['username']
         user = User.objects.get(username=username)
-        song_name = request.POST.get('song_name')
-
-        # 根据歌曲名和用户查找对应的上传歌曲记录
-        user_upload_songs = UserUploadSong.objects.filter(user=user, song__song_name=song_name)
+        song_id = request.GET.get('song_id')
+        song = Song.objects.get(id=song_id)
+        # 根据歌曲id和用户id查找对应的上传歌曲记录
+        user_upload_songs = UserUploadSong.objects.filter(user=user, song=song)
 
         if user_upload_songs.exists():
             # 遍历匹配的上传歌曲记录，逐个删除
@@ -82,9 +83,12 @@ def delete_song(request):
                 # 删除歌曲文件和上传歌曲记录
                 if os.path.exists(song_path):
                     os.remove(song_path)
+                song_name = user_upload_song.song.song_name
+                # 系统给用户发一条消息提示删除成功
+                content = '您上传的歌曲 ' + song_name + ' 删除成功！'
+                create_report(get_admin(), user, content)
                 user_upload_song.song.delete()
                 user_upload_song.delete()
-
             result = {'result': 0, 'message': r'删除歌曲成功！'}
             return JsonResponse(result)
         else:
