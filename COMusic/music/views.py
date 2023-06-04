@@ -1,5 +1,7 @@
+import json
 import os
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -421,5 +423,131 @@ def unshare_songlist(request):
 
     except Playlist.DoesNotExist:
         result = {'result': 0, 'message': r'播放列表不存在或不属于当前用户！'}
+
+    return JsonResponse(result)
+
+
+def add_songs_to_favo(request):
+    # 判断用户是否已经登录
+    if 'username' not in request.session:
+        result = {'result': 0, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+
+    # 判断是否是POST请求
+    if request.method != 'POST':
+        result = {'result': 0, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+    # 从session中获取username
+    username = request.session['username']
+    user = User.objects.get(username=username)
+
+    # 从请求的POST数据中获取song_ids和playlist_id
+    song_ids_str = request.POST.get('songs_id')  # 获取 JSON 格式的 song_ids
+    song_ids = json.loads(song_ids_str)
+    playlist_id = request.POST.get('playlist_id')
+
+    # 用来保存已成功添加的歌曲id
+    added_songs = []
+
+    try:
+        # 获取播放列表
+        playlist = Playlist.objects.get(id=playlist_id, user=user)
+    except Playlist.DoesNotExist:
+        result = {'result': 0, 'message': r'歌单不存在！'}
+        return JsonResponse(result)
+
+    for song_id in song_ids:
+        try:
+            # 获取歌曲
+            song = Song.objects.get(id=song_id)
+
+            # 将歌曲添加到播放列表
+            playlist_song = PlaylistSong.objects.create(playlist=playlist, song=song)
+            added_songs.append(playlist_song.id)
+        except Song.DoesNotExist:
+            continue  # 如果歌曲不存在，跳过并处理下一个歌曲
+
+    result = {'result': 1, 'message': r'歌曲添加到歌单成功！', 'added_playlist_songs': added_songs}
+    return JsonResponse(result)
+
+
+def get_playlist(request):
+    # 判断是否已经登录
+    if 'username' not in request.session:
+        result = {'result': 0, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+
+    # 判断是否是GET请求
+    if request.method != 'GET':
+        result = {'result': 0, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+    # 从请求的GET数据中获取playlist_id
+    playlist_id = request.GET.get('playlist_id', None)
+    if not playlist_id:
+        result = {'result': 0, 'message': r'未提供playlist_id！'}
+        return JsonResponse(result)
+
+    try:
+        # 查找对应的播放列表
+        playlist = Playlist.objects.get(id=playlist_id)
+
+        # 查询歌单内的歌曲
+        playlist_songs = PlaylistSong.objects.filter(playlist=playlist)
+        song_list = []
+        for item in playlist_songs:
+            song_list.append({
+                "song_id": item.song.id,
+                "song_name": item.song.song_name
+            })
+
+        result = {
+            'result': 1,
+            'message': r'获取歌单信息成功！',
+            'playlist_name': playlist.playlist_name,
+            'playlist_creator': playlist.user.username,
+            'playlist_tag': playlist.playlist_tag,
+            'playlist_songs': song_list
+        }
+
+    except ObjectDoesNotExist:
+        result = {'result': 0, 'message': r'播放列表不存在！'}
+
+    return JsonResponse(result)
+
+def get_song(request):
+    # 判断是否已经登录
+    if 'username' not in request.session:
+        result = {'result': 0, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+
+    # 判断是否是GET请求
+    if request.method != 'GET':
+        result = {'result': 0, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+    # 从请求的GET数据中获取song_id
+    song_id = request.GET.get('song_id', None)
+    if not song_id:
+        result = {'result': 0, 'message': r'未提供song_id！'}
+        return JsonResponse(result)
+
+    try:
+        # 查找对应的歌曲
+        song = Song.objects.get(id=song_id)
+
+        result = {
+            'result': 1,
+            'message': r'获取歌曲信息成功！',
+            'song_name': song.song_name,
+            'singer': song.singer,
+            'song_cover_url': song.song_cover_url,
+            'song_url': song.song_url,
+            'lyric': song.lyric
+        }
+
+    except ObjectDoesNotExist:
+        result = {'result': 0, 'message': r'歌曲不存在！'}
 
     return JsonResponse(result)

@@ -17,6 +17,9 @@ urlpatterns = [
     path('get_uploaded_list', get_uploaded_list),
     path('set_shared', set_shared),
     path('unshare_songlist', unshare_songlist),
-
+    path('add_songs_to_favo', add_songs_to_favo),
+    path('get_playlist', get_playlist),
+    path('get_song', get_song),
+    
 
 ]
