@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 
+from COMusic import settings
 from COMusic.settings import BASE_DIR
 from music.models import Song, UserUploadSong, Playlist, PlaylistSong, RecentPlay
 from user.models import User
@@ -106,7 +107,12 @@ def create_new_favo(request):
     if request.method == 'POST':
         playlist_name = request.POST.get('favo_title')
         user = User.objects.get(username=request.session['username'])
-        new_favo = Playlist.objects.create(user=user, playlist_name=playlist_name)
+
+        playlist_tag = "未分类"
+        if Playlist.objects.filter(user=user, playlist_name=playlist_name).exists():
+            result = {'result': 1, 'message': r'收藏夹名字已存在！'}
+            return JsonResponse(result)
+        new_favo = Playlist.objects.create(user=user, playlist_name=playlist_name, playlist_tag=playlist_tag)
         result = {'result': 0, 'message': r'创建收藏夹成功！', 'favo_id': new_favo.id,
                   'favo_title': new_favo.playlist_name}
         return JsonResponse(result)
@@ -290,6 +296,7 @@ def get_record_list(request):
         result = {'result': 0, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
+
 def get_uploaded_list(request):
     if 'username' not in request.session:
         result = {'result': 0, 'message': r'尚未登录！'}
@@ -313,3 +320,106 @@ def get_uploaded_list(request):
     else:
         result = {'result': 0, 'message': r'请求方式错误！'}
         return JsonResponse(result)
+
+
+def set_shared(request):
+    # 判断用户是否已经登录
+    if 'username' not in request.session:
+        result = {'result': 0, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+
+    # 判断是否是POST请求
+    if request.method != 'POST':
+        result = {'result': 0, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+    # 从session中获取username
+    username = request.session['username']
+
+    # 从请求的POST数据中获取playlist_id
+    playlist_id = request.POST.get('playlist_id', None)
+    playlist_tag = request.POST.get('playlist_tag')  # 获取播放列表标签
+    playlist_cover = request.FILES.get('playlist_cover')  # 获取封面文件
+    if not playlist_id:
+        result = {'result': 0, 'message': r'未提供playlist_id！'}
+        return JsonResponse(result)
+
+    try:
+        # 查找对应的用户和播放列表
+        user = User.objects.get(username=username)
+        playlist = Playlist.objects.get(id=playlist_id, user=user)
+
+        # 将播放列表的is_shared属性设置为True并保存
+        playlist.is_shared = True
+        playlist.save()
+        if playlist_cover:  # 如果上传了封面文件
+            _, ext = os.path.splitext(playlist_cover.name)
+            playlist_cover_path = os.path.join(settings.BASE_DIR, 'playlist_cover', f'{playlist.id}_cover{ext}')
+            playlist.playlist_cover_url = playlist_cover_path
+            playlist.save()
+
+            with open(playlist_cover_path, 'wb') as file:
+                for chunk in playlist_cover.chunks():
+                    file.write(chunk)
+        else:
+            playlist.playlist_cover_url = os.path.join(settings.BASE_DIR, 'playlist_cover', 'default.jpg')
+            playlist.save()
+
+        if playlist_tag:
+            playlist.playlist_tag = playlist_tag
+            playlist.save()
+
+        result = {'result': 1, 'message': r'播放列表成功设置为共享！'}
+
+    except User.DoesNotExist:
+        result = {'result': 0, 'message': r'用户不存在！'}
+
+    except Playlist.DoesNotExist:
+        result = {'result': 0, 'message': r'播放列表不存在或不属于当前用户！'}
+
+    return JsonResponse(result)
+
+
+def unshare_songlist(request):
+    # 判断用户是否已经登录
+    if 'username' not in request.session:
+        result = {'result': 0, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+
+    # 判断是否是POST请求
+    if request.method != 'POST':
+        result = {'result': 0, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+    # 从session中获取username
+    username = request.session['username']
+
+    # 从请求的POST数据中获取playlist_id
+    playlist_id = request.POST.get('songlist_id', None)
+
+    if not playlist_id:
+        result = {'result': 0, 'message': r'未提供playlist_id！'}
+        return JsonResponse(result)
+
+    try:
+        # 查找对应的用户和播放列表
+        user = User.objects.get(username=username)
+        playlist = Playlist.objects.get(id=playlist_id, user=user)
+        if not playlist.is_shared:
+            result = {'result': 0, 'message': r'这不是歌单，无法取消分享！'}
+            return  JsonResponse(result)
+        # 将播放列表的is_shared属性设置为False并保存
+        playlist.is_shared = False
+        playlist.playlist_tag = "" # 清空播放列表标签
+        playlist.playlist_cover_url = ""  # 清空封面
+        playlist.save()
+
+        result = {'result': 1, 'message': r'播放列表成功取消共享！'}
+
+    except User.DoesNotExist:
+        result = {'result': 0, 'message': r'用户不存在！'}
+
+    except Playlist.DoesNotExist:
+        result = {'result': 0, 'message': r'播放列表不存在或不属于当前用户！'}
+
+    return JsonResponse(result)

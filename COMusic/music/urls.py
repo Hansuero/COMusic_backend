@@ -15,5 +15,8 @@ urlpatterns = [
     path('post_max', post_max),
     path('get_record_list', get_record_list),
     path('get_uploaded_list', get_uploaded_list),
+    path('set_shared', set_shared),
+    path('unshare_songlist', unshare_songlist),
+
 
 ]
