@@ -13,6 +13,7 @@ class Comment(models.Model):
     def to_dic(self):
         result = {
             'comment': self.content,
+            'comment_id': self.id,
             'comment_user_id': self.user.id,
         }
         return result

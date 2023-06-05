@@ -31,9 +31,9 @@ def delete_comment(request):
     if 'username' not in request.session:
         result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
-    if request.method == 'POST':
+    if request.method == 'DELETE':
         username = request.session['username']
-        comment_id = request.POST.get('comment_id')
+        comment_id = request.GET.get('comment_id')
         user = User.objects.get(username=username)
         # 找不到评论
         if not Comment.objects.filter(id=comment_id).exists():
