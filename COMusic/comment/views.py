@@ -10,7 +10,7 @@ from comment.models import Comment
 # 创建评论
 def create_comment(request):
     if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
     if request.method == 'POST':
         username = request.session['username']
@@ -22,14 +22,14 @@ def create_comment(request):
         result = {'result': 0, 'message': r'发表评论成功！'}
         return JsonResponse(result)
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
 
 # 删除评论
 def delete_comment(request):
     if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
     if request.method == 'POST':
         username = request.session['username']
@@ -37,26 +37,26 @@ def delete_comment(request):
         user = User.objects.get(username=username)
         # 找不到评论
         if not Comment.objects.filter(id=comment_id).exists():
-            result = {'result': 0, 'message': r'未找到该评论'}
+            result = {'result': 3, 'message': r'未找到该评论'}
             return JsonResponse(result)
         comment = Comment.objects.get(id=comment_id)
         # 删除者不是创建评论者
         if user.id != comment.user.id:
-            result = {'result': 0, 'message': r'您没有该权限!'}
+            result = {'result': 4, 'message': r'您没有该权限!'}
             return JsonResponse(result)
         # 条件满足，从数据库将该评论删除
         comment.delete()
         result = {'result': 0, 'message': r'删除评论成功！'}
         return JsonResponse(result)
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
 
 # 修改评论
 def change_comment(request):
     if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
     if request.method == 'POST':
         username = request.session['username']
@@ -65,12 +65,12 @@ def change_comment(request):
         user = User.objects.get(username=username)
         # 找不到评论
         if not Comment.objects.filter(id=comment_id).exists():
-            result = {'result': 0, 'message': r'未找到该评论'}
+            result = {'result': 3, 'message': r'未找到该评论'}
             return JsonResponse(result)
         comment = Comment.objects.get(id=comment_id)
         # 修改者不是创建评论者
         if user.id != comment.user.id:
-            result = {'result': 0, 'message': r'您没有该权限!'}
+            result = {'result': 4, 'message': r'您没有该权限!'}
             return JsonResponse(result)
         # 条件满足，更新评论内容并保存
         comment.content = content
@@ -78,5 +78,17 @@ def change_comment(request):
         result = {'result': 0, 'message': r'修改评论成功！'}
         return JsonResponse(result)
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+
+def get_comment(request):
+    if request.method == 'GET':
+        song_id = request.GET.get('song_id')
+        comments = Comment.objects.filter(song__id=song_id)
+        comments_data = [c.to_dic() for c in comments]
+        result = {'result': 0, 'message': r'获取评论列表成功！', 'song_comments': comments_data}
+        return JsonResponse(result)
+    else:
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)

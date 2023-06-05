@@ -10,6 +10,13 @@ class Comment(models.Model):
     content = models.CharField('评论内容', max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def to_dic(self):
+        result = {
+            'comment': self.content,
+            'comment_user_id': self.user.id,
+        }
+        return result
+
     class Meta:
         db_table = 'comment'
 
