@@ -20,6 +20,6 @@ urlpatterns = [
     path('add_songs_to_favo', add_songs_to_favo),
     path('get_playlist', get_playlist),
     path('get_song', get_song),
-    
+    path('cancel_favo', cancel_favo),
 
 ]

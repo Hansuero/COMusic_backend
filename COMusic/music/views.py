@@ -551,3 +551,45 @@ def get_song(request):
         result = {'result': 0, 'message': r'歌曲不存在！'}
 
     return JsonResponse(result)
+
+def cancel_favo(request):
+    # 判断用户是否已经登录
+    if 'username' not in request.session:
+        result = {'result': 2, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+
+    # 判断是否是POST请求
+    if request.method != 'POST':
+        result = {'result': 1, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+    # 从session中获取username
+    username = request.session['username']
+    user = User.objects.get(username=username)
+
+    # 从请求的POST数据中获取playlist_id和song_id
+    playlist_id = request.POST.get('playlist_id')
+    song_id = request.POST.get('song_id')
+
+    try:
+        # 获取播放列表
+        playlist = Playlist.objects.get(id=playlist_id, user=user)
+
+        # 获取要取消收藏的歌曲
+        song = Song.objects.get(id=song_id)
+
+        # 删除歌曲与播放列表的关联关系
+        playlist_song = PlaylistSong.objects.get(playlist=playlist, song=song)
+        playlist_song.delete()
+
+        result = {'result': 0, 'message': r'取消收藏成功！'}
+        return JsonResponse(result)
+    except Playlist.DoesNotExist:
+        result = {'result': 3, 'message': r'歌单不存在！'}
+        return JsonResponse(result)
+    except Song.DoesNotExist:
+        result = {'result': 4, 'message': r'歌曲不存在！'}
+        return JsonResponse(result)
+    except PlaylistSong.DoesNotExist:
+        result = {'result': 5, 'message': r'歌曲未收藏！'}
+        return JsonResponse(result)
