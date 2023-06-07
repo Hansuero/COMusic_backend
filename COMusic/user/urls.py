@@ -15,5 +15,6 @@ urlpatterns = [
     path('unfollow_user', unfollow_user),
     path('get_other_info', get_other_info),
     path('get_intro', get_intro),
+    path('get_other_intro', get_other_intro),
 
 ]

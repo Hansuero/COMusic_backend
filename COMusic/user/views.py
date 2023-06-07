@@ -227,3 +227,13 @@ def get_other_info(request):
         result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
+def get_other_intro(request):
+    if request.method == 'GET':
+        user_id = request.GET.get('id')
+        user_data = User.objects.get(id=user_id).intro
+        result = {'result': 0, 'message': r"返回成功", 'intro': user_data}
+        return JsonResponse(result)
+
+    else:
+        result = {'result': 1, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
