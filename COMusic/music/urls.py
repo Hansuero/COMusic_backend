@@ -21,5 +21,6 @@ urlpatterns = [
     path('get_playlist', get_playlist),
     path('get_song', get_song),
     path('cancel_favo', cancel_favo),
+    path('delete_list', delete_list),
 
 ]

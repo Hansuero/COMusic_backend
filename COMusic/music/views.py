@@ -593,3 +593,38 @@ def cancel_favo(request):
     except PlaylistSong.DoesNotExist:
         result = {'result': 5, 'message': r'歌曲未收藏！'}
         return JsonResponse(result)
+
+
+def delete_list(request):
+    # 判断是否已经登录
+    if 'username' not in request.session:
+        result = {'result': 2, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+
+    # 判断是否是 DELETE 请求
+    if request.method != 'DELETE':
+        result = {'result': 1, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+    # 从请求的 DELETE 数据中获取 playlist_id
+    playlist_id = request.DELETE.get('playlist_id', None)
+    if not playlist_id:
+        result = {'result': 3, 'message': r'未提供 playlist_id！'}
+        return JsonResponse(result)
+
+    try:
+        # 查找要删除的播放列表
+        playlist = Playlist.objects.get(id=playlist_id)
+
+        # 删除 playlist_song 表中与该播放列表相关联的记录
+        PlaylistSong.objects.filter(playlist=playlist).delete()
+
+        # 删除 playlist 表中的该播放列表
+        playlist.delete()
+
+        result = {'result': 0, 'message': r'删除播放列表成功！'}
+
+    except ObjectDoesNotExist:
+        result = {'result': 4, 'message': r'播放列表不存在！'}
+
+    return JsonResponse(result)
