@@ -204,6 +204,17 @@ def get_user_info(request):
         result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
+def get_intro(request):
+    if request.method == 'GET':
+        username = request.session['username']
+        user_data = User.objects.get(username=username).intro
+        result = {'result': 0, 'message': r"返回成功", 'intro': user_data}
+        return JsonResponse(result)
+
+    else:
+        result = {'result': 1, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
 
 def get_other_info(request):
     if request.method == 'GET':
