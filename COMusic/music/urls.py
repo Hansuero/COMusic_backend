@@ -12,6 +12,7 @@ urlpatterns = [
     path('add_song_to_favo', add_song_to_favo),
     path('get_songs_in_favo', get_songs_in_favo),
     path('add_to_recent', add_to_recent),
+    path('get_max', get_max),
     path('post_max', post_max),
     path('get_record_list', get_record_list),
     path('get_uploaded_list', get_uploaded_list),
@@ -22,5 +23,7 @@ urlpatterns = [
     path('get_song', get_song),
     path('cancel_favo', cancel_favo),
     path('delete_list', delete_list),
-
+	path('add_i_like', add_i_like),
+	path('cancel_i_like', cancel_i_like),
+ 	path('get_is_shared', get_is_shared),
 ]

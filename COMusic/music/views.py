@@ -17,7 +17,7 @@ from utils.utils import *
 # Create your views here.
 def upload_song(request):
     if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
 
     if request.method == 'POST':
@@ -34,11 +34,17 @@ def upload_song(request):
 
         if song_file:  # 如果上传了歌曲文件
             _, ext = os.path.splitext(song_file.name)
+            print(ext)
+            if ext != '.mp3' and ext != '.ogg':
+                result = {'result': 3, 'message': '歌曲格式不正确！'}
+                return JsonResponse(result)
             # 生成歌曲文件的保存路径
             song = Song.objects.create(song_name=song_name, song_tag=song_tag, lyric=lyric,
                                        singer=singer)
             song_path = os.path.join(BASE_DIR, 'song', f'{song.id}_song{ext}')
+            song_path_out = 'http://82.157.165.72:8888/song/' + f'{song.id}_song{ext}'
             song.song_url = song_path
+            song.song_url_out = song_path_out
             song.save()
             # 保存歌曲文件到指定路径
             with open(song_path, 'wb') as file:
@@ -47,8 +53,13 @@ def upload_song(request):
 
             if song_cover:  # 如果上传了封面
                 _, ext = os.path.splitext(song_cover.name)
+                if ext != '.jpg' and ext != '.jpeg' and ext != '.png':
+                    result = {'result': 4, 'message': '封面格式不正确！'}
+                    return JsonResponse(result)
                 song_cover_path = os.path.join(BASE_DIR, 'song_cover', f'{song.id}_song_cover{ext}')
+                song_cover_path_out = 'http://82.157.165.72:8888/song_cover/' + f'{song.id}_song_cover{ext}'
                 song.song_cover_url = song_cover_path
+                song.song_cover_url_out = song_cover_path_out
                 song.save()
 
                 with open(song_cover_path, 'wb') as file:
@@ -56,18 +67,19 @@ def upload_song(request):
                         file.write(chunk)
             else:
                 song.song_cover_url = os.path.join(BASE_DIR, 'song_cover', 'default.jpg')
+                song.song_cover_url_out = 'http://82.157.165.72:8888/song_cover/default.jpg'
                 song.save()
             UserUploadSong.objects.create(user=user, song=song)
             result = {'result': 0, 'message': r'上传歌曲成功！'}
             return JsonResponse(result)
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
 
 def delete_song(request):
     if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
 
     if request.method == 'DELETE':
@@ -77,28 +89,29 @@ def delete_song(request):
         song = Song.objects.get(id=song_id)
         # 根据歌曲id和用户id查找对应的上传歌曲记录
         user_upload_songs = UserUploadSong.objects.filter(user=user, song=song)
-
+        if user.is_admin:
+            user_upload_songs = UserUploadSong.objects.filter(song=song)
         if user_upload_songs.exists():
             # 遍历匹配的上传歌曲记录，逐个删除
             for user_upload_song in user_upload_songs:
                 song_path = user_upload_song.song.song_url
-
+                user_to_report = user_upload_song.user
                 # 删除歌曲文件和上传歌曲记录
                 if os.path.exists(song_path):
                     os.remove(song_path)
                 song_name = user_upload_song.song.song_name
                 # 系统给用户发一条消息提示删除成功
-                content = '您上传的歌曲 ' + song_name + ' 删除成功！'
-                create_report(get_admin(), user, content)
+                content = '您上传的歌曲 ' + song_name + ' 已删除'
+                create_report(get_admin(), user_to_report, content)
                 user_upload_song.song.delete()
                 user_upload_song.delete()
             result = {'result': 0, 'message': r'删除歌曲成功！'}
             return JsonResponse(result)
         else:
-            result = {'result': 0, 'message': r'未找到对应的上传歌曲记录！'}
+            result = {'result': 3, 'message': r'未找到对应的上传歌曲记录！'}
             return JsonResponse(result)
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
 
@@ -131,7 +144,7 @@ def get_favo_list(request):
         user = User.objects.get(username=request.session['username'])
         playlists = Playlist.objects.filter(user=user)
         playlists_data = [{'favo_id': p.id, 'favo_title': p.playlist_name} for p in playlists]
-        result = {'result': 0, 'message': r'获取收藏夹成功！', 'playlists': playlists_data}
+        result = {'result': 0, 'message': r'获取收藏夹成功！', 'favo_list': playlists_data}
         return JsonResponse(result)
     else:
         result = {'result': 1, 'message': r'请求方式错误！'}
@@ -140,7 +153,7 @@ def get_favo_list(request):
 
 def add_song_to_favo(request):
     if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
 
     if request.method == 'POST':
@@ -152,23 +165,26 @@ def add_song_to_favo(request):
             song = Song.objects.get(id=song_id)
             playlist = Playlist.objects.get(id=playlist_id)
             if playlist.user.id != user.id:
-                result = {'result': 0, 'message': r'您的名下不存在该歌单！'}
+                result = {'result': 3, 'message': r'您的名下不存在该歌单！'}
                 return JsonResponse(result)
-        except (Song.DoesNotExist, Playlist.DoesNotExist):
-            result = {'result': 0, 'message': r'歌曲或歌单不存在！'}
+            if PlaylistSong.objects.filter(playlist=playlist, song=song):
+                result = {'result': 4, 'message': r'该歌曲已在此收藏夹中，请选择其他收藏夹！'}
+                return JsonResponse(result)
+            playlist_song = PlaylistSong.objects.create(playlist=playlist, song=song, user=user)
+            result = {'result': 0, 'message': r'歌曲添加到歌单成功！', 'playlist_song_id': playlist_song.id}
             return JsonResponse(result)
-
-        playlist_song = PlaylistSong.objects.create(playlist=playlist, song=song)
-        result = {'result': 1, 'message': r'歌曲添加到歌单成功！', 'playlist_song_id': playlist_song.id}
-        return JsonResponse(result)
+        except (Song.DoesNotExist, Playlist.DoesNotExist):
+            result = {'result': 4, 'message': r'歌曲或歌单不存在！'}
+            return JsonResponse(result)
+        
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
 
 def get_songs_in_favo(request):
     if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
 
     if request.method == 'GET':
@@ -177,31 +193,31 @@ def get_songs_in_favo(request):
         try:
             playlist = Playlist.objects.get(id=favo_id)
         except Playlist.DoesNotExist:
-            result = {'result': 0, 'message': r'收藏夹不存在！'}
+            result = {'result': 3, 'message': r'收藏夹不存在！'}
             return JsonResponse(result)
         if playlist.user.id != user.id:
-            result = {'result': 0, 'message': r'不是你的歌单！'}
+            result = {'result': 4, 'message': r'不是你的歌单！'}
             return JsonResponse(result)
         playlist_songs = PlaylistSong.objects.filter(playlist=playlist).values('song_id', 'song__song_name',
                                                                                'song__singer')
         songs_data = [
             {
                 'song_id': song['song_id'],
-                'song_name': song['song__song_name'],
-                'singer': song['song__singer']
+                'song_title': song['song__song_name'],
+                'song_artist': song['song__singer']
             }
             for song in playlist_songs
         ]
-        result = {'result': 1, 'message': r'获取收藏夹歌曲列表成功！', 'songs': songs_data}
+        result = {'result': 0, 'message': r'获取收藏夹歌曲列表成功！', 'song_list': songs_data}
         return JsonResponse(result)
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
 
 def add_to_recent(request):
     if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
 
     if request.method == 'POST':
@@ -211,7 +227,7 @@ def add_to_recent(request):
         try:
             song = Song.objects.get(id=song_id)
         except Song.DoesNotExist:
-            result = {'result': 0, 'message': r'歌曲不存在！'}
+            result = {'result': 3, 'message': r'歌曲不存在！'}
             return JsonResponse(result)
 
         # Check if the song is already in the recent play
@@ -221,21 +237,35 @@ def add_to_recent(request):
             # Song is already in recent play, update the play date
             recent_play.play_date = timezone.now()
             recent_play.save()
-            result = {'result': 1, 'message': r'歌曲已更新到最近播放！', 'recent_play_id': recent_play.id}
+            result = {'result': 0, 'message': r'歌曲已更新到最近播放！', 'recent_play_id': recent_play.id}
         else:
             # Song is not in recent play, create a new entry
             recent_play = RecentPlay.objects.create(user=user, song=song)
-            result = {'result': 1, 'message': r'歌曲添加到最近播放成功！', 'recent_play_id': recent_play.id}
+            result = {'result': 0, 'message': r'歌曲添加到最近播放成功！', 'recent_play_id': recent_play.id}
 
         return JsonResponse(result)
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
+def get_max(request):
+    if 'username' not in request.session:
+        result = {'result': 2, 'message': r'尚未登录！'}
+        return JsonResponse(result)
 
+    if request.method == 'GET':
+        user = User.objects.get(username=request.session['username'])
+        max_recent_play_count = user.recent_play_max
+        result = {'result': 0, 'message': '获取成功！', 'max': max_recent_play_count}
+        return JsonResponse(result)
+    else:
+        result = {'result': 1, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+    
+    
 def post_max(request):
     if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
 
     if request.method == 'POST':
@@ -249,29 +279,29 @@ def post_max(request):
             if max_recent_play_count <= 0:
                 raise ValueError("The value must be a positive integer")
         except ValueError as e:
-            result = {'result': 0, 'message': r'最近播放最大数量必须是正整数！'}
+            result = {'result': 3, 'message': r'最近播放最大数量必须是正整数！'}
             return JsonResponse(result)
 
         # Update the user's max recent play count
         user.recent_play_max = max_recent_play_count
         user.save()
-        result = {'result': 1, 'message': r'设置最近播放最大数量成功！', 'recent_play_max': max_recent_play_count}
+        result = {'result': 0, 'message': r'设置最近播放最大数量成功！', 'recent_play_max': max_recent_play_count}
         return JsonResponse(result)
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
 
 def get_record_list(request):
     if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
 
     if request.method == 'GET':
         user = User.objects.get(username=request.session['username'])
 
         if user.recent_play_max == 0:
-            result = {'result': 0, 'message': r'请设置最近播放的数量！'}
+            result = {'result': 3, 'message': r'请设置最近播放的数量！'}
             return JsonResponse(result)
 
         recent_plays = RecentPlay.objects.filter(user=user).order_by('-play_date')
@@ -286,22 +316,22 @@ def get_record_list(request):
         recent_plays_data_list = [
             {
                 'song_id': recent_play['song_id'],
-                'song_name': recent_play['song__song_name'],
-                'singer': recent_play['song__singer']
+                'song_title': recent_play['song__song_name'],
+                'song_artist': recent_play['song__singer']
             }
             for recent_play in recent_plays_data
         ]
 
-        result = {'result': 1, 'message': r'获取最近播放列表成功！', 'recent_plays': recent_plays_data_list}
+        result = {'result': 0, 'message': r'获取最近播放列表成功！', 'song_list': recent_plays_data_list}
         return JsonResponse(result)
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
 
 def get_uploaded_list(request):
     if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
 
     if request.method == 'GET':
@@ -312,38 +342,38 @@ def get_uploaded_list(request):
         songs_data = [
             {
                 'song_id': song['song_id'],
-                'song_name': song['song__song_name'],
-                'singer': song['song__singer']
+                'song_title': song['song__song_name'],
+                'song_artist': song['song__singer']
             }
             for song in user_upload_songs
         ]
-        result = {'result': 1, 'message': r'获取用户上传的歌曲列表成功！', 'songs': songs_data}
+        result = {'result': 0, 'message': r'获取用户上传的歌曲列表成功！', 'song_list': songs_data}
         return JsonResponse(result)
     else:
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
 
 def set_shared(request):
     # 判断用户是否已经登录
     if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
 
     # 判断是否是POST请求
     if request.method != 'POST':
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
     # 从session中获取username
     username = request.session['username']
 
     # 从请求的POST数据中获取playlist_id
-    playlist_id = request.POST.get('playlist_id', None)
+    playlist_id = request.POST.get('playlist_id')
     playlist_tag = request.POST.get('playlist_tag')  # 获取播放列表标签
     playlist_cover = request.FILES.get('playlist_cover')  # 获取封面文件
     if not playlist_id:
-        result = {'result': 0, 'message': r'未提供playlist_id！'}
+        result = {'result': 3, 'message': r'未提供playlist_id！'}
         return JsonResponse(result)
 
     try:
@@ -358,6 +388,7 @@ def set_shared(request):
             _, ext = os.path.splitext(playlist_cover.name)
             playlist_cover_path = os.path.join(settings.BASE_DIR, 'playlist_cover', f'{playlist.id}_cover{ext}')
             playlist.playlist_cover_url = playlist_cover_path
+            playlist.playlist_cover_url_out = 'http://82.157.165.72:8888/playlist_cover/' + f'{playlist.id}_cover{ext}'
             playlist.save()
 
             with open(playlist_cover_path, 'wb') as file:
@@ -365,19 +396,20 @@ def set_shared(request):
                     file.write(chunk)
         else:
             playlist.playlist_cover_url = os.path.join(settings.BASE_DIR, 'playlist_cover', 'default.jpg')
+            playlist.playlist_cover_url_out = 'http://82.157.165.72:8888/playlist_cover/default.jpg'
             playlist.save()
 
         if playlist_tag:
             playlist.playlist_tag = playlist_tag
             playlist.save()
 
-        result = {'result': 1, 'message': r'播放列表成功设置为共享！'}
+        result = {'result': 0, 'message': r'播放列表成功设置为共享！'}
 
     except User.DoesNotExist:
-        result = {'result': 0, 'message': r'用户不存在！'}
+        result = {'result': 4, 'message': r'用户不存在！'}
 
     except Playlist.DoesNotExist:
-        result = {'result': 0, 'message': r'播放列表不存在或不属于当前用户！'}
+        result = {'result': 5, 'message': r'播放列表不存在或不属于当前用户！'}
 
     return JsonResponse(result)
 
@@ -385,57 +417,66 @@ def set_shared(request):
 def unshare_songlist(request):
     # 判断用户是否已经登录
     if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
 
     # 判断是否是POST请求
     if request.method != 'POST':
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
     # 从session中获取username
     username = request.session['username']
 
     # 从请求的POST数据中获取playlist_id
-    playlist_id = request.POST.get('songlist_id', None)
+    playlist_id = request.POST.get('songlist_id')
 
     if not playlist_id:
-        result = {'result': 0, 'message': r'未提供playlist_id！'}
+        result = {'result': 3, 'message': r'未提供playlist_id！'}
         return JsonResponse(result)
 
     try:
         # 查找对应的用户和播放列表
         user = User.objects.get(username=username)
-        playlist = Playlist.objects.get(id=playlist_id, user=user)
+        playlist = Playlist.objects.get(id=playlist_id)
+        if user.is_admin:
+            playlist = Playlist.objects.get(id=playlist_id)
+        else:   
+            playlist = Playlist.objects.get(id=playlist_id, user=user)
+        
         if not playlist.is_shared:
-            result = {'result': 0, 'message': r'这不是歌单，无法取消分享！'}
+            result = {'result': 4, 'message': r'这不是歌单，无法取消分享！'}
             return  JsonResponse(result)
         # 将播放列表的is_shared属性设置为False并保存
         playlist.is_shared = False
         playlist.playlist_tag = "" # 清空播放列表标签
         playlist.playlist_cover_url = ""  # 清空封面
         playlist.save()
-
-        result = {'result': 1, 'message': r'播放列表成功取消共享！'}
+        # 系统给用户发一条消息提示删除成功
+        content = '您的歌单 ' + playlist.playlist_name + ' 已取消分享'
+        user_to_report = playlist.user
+        create_report(get_admin(), user_to_report, content)
+        result = {'result': 0, 'message': r'歌单成功取消共享！'}
 
     except User.DoesNotExist:
-        result = {'result': 0, 'message': r'用户不存在！'}
+        result = {'result': 5, 'message': r'用户不存在！'}
 
     except Playlist.DoesNotExist:
-        result = {'result': 0, 'message': r'播放列表不存在或不属于当前用户！'}
+        result = {'result': 6, 'message': r'播放列表不存在或不属于当前用户！'}
 
+    # print(result)
     return JsonResponse(result)
 
 
 def add_songs_to_favo(request):
     # 判断用户是否已经登录
     if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
+        result = {'result': 2, 'message': r'尚未登录！'}
         return JsonResponse(result)
 
     # 判断是否是POST请求
     if request.method != 'POST':
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
     # 从session中获取username
@@ -444,9 +485,10 @@ def add_songs_to_favo(request):
 
     # 从请求的POST数据中获取song_ids和playlist_id
     song_ids_str = request.POST.get('songs_id')  # 获取 JSON 格式的 song_ids
-    song_ids = json.loads(song_ids_str)
+    # song_ids = json.loads(song_ids_str)
+    song_ids = song_ids_str.split(',')
     playlist_id = request.POST.get('playlist_id')
-
+    print(song_ids)
     # 用来保存已成功添加的歌曲id
     added_songs = []
 
@@ -454,7 +496,7 @@ def add_songs_to_favo(request):
         # 获取播放列表
         playlist = Playlist.objects.get(id=playlist_id, user=user)
     except Playlist.DoesNotExist:
-        result = {'result': 0, 'message': r'歌单不存在！'}
+        result = {'result': 3, 'message': r'歌单不存在！'}
         return JsonResponse(result)
 
     for song_id in song_ids:
@@ -463,30 +505,27 @@ def add_songs_to_favo(request):
             song = Song.objects.get(id=song_id)
 
             # 将歌曲添加到播放列表
-            playlist_song = PlaylistSong.objects.create(playlist=playlist, song=song)
+            if PlaylistSong.objects.filter(playlist=playlist, song=song).exists():
+                continue
+            playlist_song = PlaylistSong.objects.create(playlist=playlist, song=song, user=user)
             added_songs.append(playlist_song.id)
         except Song.DoesNotExist:
             continue  # 如果歌曲不存在，跳过并处理下一个歌曲
 
-    result = {'result': 1, 'message': r'歌曲添加到歌单成功！', 'added_playlist_songs': added_songs}
+    result = {'result': 0, 'message': r'歌曲添加到歌单成功！', 'added_playlist_songs': added_songs}
     return JsonResponse(result)
 
 
 def get_playlist(request):
-    # 判断是否已经登录
-    if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
-        return JsonResponse(result)
-
     # 判断是否是GET请求
     if request.method != 'GET':
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
     # 从请求的GET数据中获取playlist_id
-    playlist_id = request.GET.get('playlist_id', None)
+    playlist_id = request.GET.get('playlist_id')
     if not playlist_id:
-        result = {'result': 0, 'message': r'未提供playlist_id！'}
+        result = {'result': 2, 'message': r'未提供playlist_id！'}
         return JsonResponse(result)
 
     try:
@@ -503,54 +542,69 @@ def get_playlist(request):
             })
 
         result = {
-            'result': 1,
+            'result': 0,
             'message': r'获取歌单信息成功！',
             'playlist_name': playlist.playlist_name,
             'playlist_creator': playlist.user.username,
             'playlist_tag': playlist.playlist_tag,
+            'playlist_cover_url': playlist.playlist_cover_url_out,
             'playlist_songs': song_list
         }
 
     except ObjectDoesNotExist:
-        result = {'result': 0, 'message': r'播放列表不存在！'}
+        result = {'result': 4, 'message': r'播放列表不存在！'}
 
     return JsonResponse(result)
 
 def get_song(request):
-    # 判断是否已经登录
-    if 'username' not in request.session:
-        result = {'result': 0, 'message': r'尚未登录！'}
-        return JsonResponse(result)
 
     # 判断是否是GET请求
     if request.method != 'GET':
-        result = {'result': 0, 'message': r'请求方式错误！'}
+        result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
     # 从请求的GET数据中获取song_id
-    song_id = request.GET.get('song_id', None)
+    song_id = request.GET.get('song_id')
     if not song_id:
-        result = {'result': 0, 'message': r'未提供song_id！'}
+        result = {'result': 3, 'message': r'未提供song_id！'}
         return JsonResponse(result)
-
+    
     try:
         # 查找对应的歌曲
         song = Song.objects.get(id=song_id)
+        is_like = False
+        if 'username' not in request.session:
+            result = {
+                'result': 0,
+                'message': r'获取歌曲信息成功！',
+                'song_name': song.song_name,
+                'singer': song.singer,
+                'song_cover_url': song.song_cover_url_out,
+                'song_url': song.song_url_out,
+                'lyric': song.lyric,
+                'is_like': is_like,
+            }
+        else:
+            user = User.objects.get(username=request.session['username'])
+            playlist = Playlist.objects.get(id=user.like_id)
 
-        result = {
-            'result': 1,
-            'message': r'获取歌曲信息成功！',
-            'song_name': song.song_name,
-            'singer': song.singer,
-            'song_cover_url': song.song_cover_url,
-            'song_url': song.song_url,
-            'lyric': song.lyric
-        }
-
+            if PlaylistSong.objects.filter(playlist=playlist, song=song, user=user).exists():
+                is_like=True
+            result = {
+                'result': 0,
+                'message': r'获取歌曲信息成功！',
+                'song_name': song.song_name,
+                'singer': song.singer,
+                'song_cover_url': song.song_cover_url_out,
+                'song_url': song.song_url_out,
+                'lyric': song.lyric,
+                'is_like': is_like,
+            }
     except ObjectDoesNotExist:
-        result = {'result': 0, 'message': r'歌曲不存在！'}
+        result = {'result': 4, 'message': r'歌曲不存在！'}
 
     return JsonResponse(result)
+
 
 def cancel_favo(request):
     # 判断用户是否已经登录
@@ -559,7 +613,7 @@ def cancel_favo(request):
         return JsonResponse(result)
 
     # 判断是否是POST请求
-    if request.method != 'POST':
+    if request.method != 'DELETE':
         result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
@@ -568,8 +622,8 @@ def cancel_favo(request):
     user = User.objects.get(username=username)
 
     # 从请求的POST数据中获取playlist_id和song_id
-    playlist_id = request.POST.get('playlist_id')
-    song_id = request.POST.get('song_id')
+    playlist_id = request.GET.get('playlist_id')
+    song_id = request.GET.get('song_id')
 
     try:
         # 获取播放列表
@@ -579,7 +633,7 @@ def cancel_favo(request):
         song = Song.objects.get(id=song_id)
 
         # 删除歌曲与播放列表的关联关系
-        playlist_song = PlaylistSong.objects.get(playlist=playlist, song=song)
+        playlist_song = PlaylistSong.objects.get(user=user, song=song, playlist=playlist)
         playlist_song.delete()
 
         result = {'result': 0, 'message': r'取消收藏成功！'}
@@ -593,8 +647,8 @@ def cancel_favo(request):
     except PlaylistSong.DoesNotExist:
         result = {'result': 5, 'message': r'歌曲未收藏！'}
         return JsonResponse(result)
-
-
+    
+    
 def delete_list(request):
     # 判断是否已经登录
     if 'username' not in request.session:
@@ -607,7 +661,7 @@ def delete_list(request):
         return JsonResponse(result)
 
     # 从请求的 DELETE 数据中获取 playlist_id
-    playlist_id = request.DELETE.get('playlist_id', None)
+    playlist_id = request.GET.get('playlist_id')
     if not playlist_id:
         result = {'result': 3, 'message': r'未提供 playlist_id！'}
         return JsonResponse(result)
@@ -628,3 +682,98 @@ def delete_list(request):
         result = {'result': 4, 'message': r'播放列表不存在！'}
 
     return JsonResponse(result)
+
+
+def add_i_like(request):
+    if 'username' not in request.session:
+        result = {'result': 2, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+
+    if request.method == 'POST':
+        user = User.objects.get(username=request.session['username'])
+        song_id = request.POST.get('song_id')
+        playlist_id = user.like_id
+
+        try:
+            song = Song.objects.get(id=song_id)
+            playlist = Playlist.objects.get(id=playlist_id)
+            if playlist.user.id != user.id:
+                result = {'result': 3, 'message': r'您的名下不存在我喜欢！奇了怪了'}
+                return JsonResponse(result)
+            if PlaylistSong.objects.filter(playlist=playlist, song=song):
+                result = {'result': 4, 'message': r'已经喜欢过了！'}
+                return JsonResponse(result)
+            playlist_song = PlaylistSong.objects.create(playlist=playlist, song=song, user=user)
+            result = {'result': 0, 'message': r'成功添加到我喜欢！', 'playlist_song_id': playlist_song.id}
+            return JsonResponse(result)
+        except (Song.DoesNotExist, Playlist.DoesNotExist):
+            result = {'result': 4, 'message': r'歌曲或我喜欢不存在！'}
+            return JsonResponse(result)
+        
+    else:
+        result = {'result': 1, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+
+def cancel_i_like(request):
+    # 判断用户是否已经登录
+    if 'username' not in request.session:
+        result = {'result': 2, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+
+    # 判断是否是DELETE请求
+    if request.method != 'DELETE':
+        result = {'result': 1, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+    # 从session中获取username
+    username = request.session['username']
+    user = User.objects.get(username=username)
+
+    # 从请求的GET数据中获取playlist_id和song_id
+    # playlist_id = request.GET.get('playlist_id')
+    song_id = request.GET.get('song_id')
+
+    try:
+        # 获取播放列表
+        # playlist = Playlist.objects.get(id=playlist_id, user=user)
+
+        # 获取要取消收藏的歌曲
+        song = Song.objects.get(id=song_id)
+        playlist = Playlist.objects.get(id=user.like_id)
+        # 删除歌曲与播放列表的关联关系
+        playlist_song = PlaylistSong.objects.get(user=user, song=song, playlist=playlist)
+        playlist_song.delete()
+
+        result = {'result': 0, 'message': r'取消我喜欢成功！'}
+        return JsonResponse(result)
+    except Playlist.DoesNotExist:
+        result = {'result': 3, 'message': r'我喜欢不存在！'}
+        return JsonResponse(result)
+    except Song.DoesNotExist:
+        result = {'result': 4, 'message': r'歌曲不存在！'}
+        return JsonResponse(result)
+    except PlaylistSong.DoesNotExist:
+        result = {'result': 5, 'message': r'未添加到我喜欢！'}
+        return JsonResponse(result)
+    
+
+def get_is_shared(request):
+    # 判断用户是否已经登录
+    if 'username' not in request.session:
+        result = {'result': 2, 'message': r'尚未登录！'}
+        return JsonResponse(result)
+
+    # 判断是否是GET请求
+    if request.method != 'GET':
+        result = {'result': 1, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+    
+    playlist_id = request.GET.get('playlist_id')
+    try:
+        playlist = Playlist.objects.get(id=playlist_id)
+        result = {'result': 0, 'message': r'获取分享状态成功！', 'is_shared': playlist.is_shared}
+        return JsonResponse(result)
+    except Playlist.DoesNotExist:
+        result = {'result': 3, 'message': r'歌单不存在！'}
+        return JsonResponse(result)

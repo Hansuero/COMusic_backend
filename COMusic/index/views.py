@@ -27,12 +27,12 @@ def search_song(request):
 
 def search_playlist(request):
     if request.method == 'GET':
-        playlist_name = request.GET.get('playlist_name')
+        playlist_name = request.GET.get('songlist_name')
         if playlist_name:
-            playlist_list = Playlist.objects.filter(playlist_name__icontains=playlist_name)
+            playlist_list = Playlist.objects.filter(playlist_name__icontains=playlist_name, is_shared=True)
             if playlist_list:
                 playlist_list_data = [p.to_dic() for p in playlist_list]
-                result = {'result': 0, 'message': r'搜索成功！', 'playlist_list': playlist_list_data}
+                result = {'result': 0, 'message': r'搜索成功！', 'songlist_list': playlist_list_data}
                 return JsonResponse(result)
             else:
                 result = {'result': 3, 'message': r'无结果！'}
@@ -91,7 +91,7 @@ def get_recommend_playlist(request):
         playlist_tag = request.GET.get('playlist_tag')
         if playlist_tag:
             # 获取 10 个符合tag的歌单列表
-            playlist_list = Playlist.objects.filter(playlist_tag=playlist_tag)[0:10]
+            playlist_list = Playlist.objects.filter(playlist_tag=playlist_tag, is_shared=True)[0:10]
             if playlist_list:
                 playlist_data = [p.to_simple_dic() for p in playlist_list]
                 result = {'result': 0, 'message': r'返回推荐列表成功！', 'playlist_data': playlist_data}

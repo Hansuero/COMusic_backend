@@ -1,8 +1,8 @@
 from django.http import JsonResponse
+from django.shortcuts import render
 from super_admin.models import Report
 from user.models import User
-from utils.utils import get_admin
-
+from utils.utils import *
 
 # Create your views here.
 
@@ -61,7 +61,7 @@ def complain_playlist(request):
         complaint = request.POST.get('complaint')
 
 
-        content = f"song_id:{playlist_id}\n内容：{complaint}"
+        content = f"playllist_id:{playlist_id}\n内容：{complaint}"
 
         # 创建举报信息
         report = Report(sender=user, receiver=get_admin(), content=content)

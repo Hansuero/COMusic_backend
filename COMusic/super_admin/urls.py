@@ -8,5 +8,4 @@ urlpatterns = [
     path('get_report_list', get_report_list),
     path('complain_song', complain_song),
     path('complain_playlist', complain_playlist),
-
 ]

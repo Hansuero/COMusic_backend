@@ -7,7 +7,7 @@ from django.shortcuts import redirect, get_object_or_404
 
 from COMusic.settings import BASE_DIR
 from user.models import *
-
+from music.models import *
 
 # Create your views here.
 
@@ -35,7 +35,13 @@ def register(request):
             result = {'result': 5, 'message': r'邮箱不允许为空！'}
             return JsonResponse(result)
         photo_url = os.path.join(BASE_DIR, 'photo', 'default.jpg')
-        User.objects.create(username=username, password=password1, email=email, photo_url=photo_url)
+        
+        user = User.objects.create(username=username, password=password1, email=email, photo_url=photo_url)
+        like = Playlist.objects.create(user=user, playlist_name='我喜欢', is_shared=False)
+        user.like_id = like.id
+        user.save()
+        request.session['username'] = username
+        request.session.set_expiry(3600)
         result = {'result': 0, 'message': r'注册成功！'}
         return JsonResponse(result)
     else:
@@ -71,11 +77,14 @@ def logout(request):
 
 
 def upload_intro(request):
+    if 'username' not in request.session:  # 检查用户是否已登录
+        result = {'result': 2, 'message': r'尚未登录！'}
+        return JsonResponse(result)
     if request.method == 'POST':
-        user = request.user
+        user = User.objects.get(username=request.session['username'])
         intro = request.POST.get('intro')
         if len(intro) > 256:
-            result = {'result': 2, 'message': r'个人简介长度超过限制！'}
+            result = {'result': 3, 'message': r'个人简介长度超过限制！'}
             return JsonResponse(result)
         user.intro = intro
         user.save()
@@ -98,7 +107,8 @@ def upload_photo(request):
 
         if photo:  # 如果上传了头像文件
             # 生成头像文件的保存路径
-            photo_path = os.path.join(BASE_DIR, 'photo', f'{user.id}_photo.jpg')
+            _, ext = os.path.splitext(photo.name)
+            photo_path = os.path.join(BASE_DIR, 'photo', f'{user.id}_photo{ext}')
 
             # 保存头像文件到指定路径
             with open(photo_path, 'wb') as file:
@@ -106,7 +116,8 @@ def upload_photo(request):
                     file.write(chunk)
 
             # 更新用户的头像路径
-            user.photo_url = f'photo/{user.id}_photo.jpg'
+            user.photo_url = photo_path
+            user.photo_url_out = 'http://82.157.165.72:8888/photo/' + f'{user.id}_photo{ext}'
             user.save()
             result = {'result': 0, 'message': r'上传头像成功！'}
             return JsonResponse(result)
@@ -123,7 +134,7 @@ def show_following(request):
         username = request.session['username']
         user = User.objects.get(username=username)
         following = Follow.objects.filter(follower=user)
-        following_list = [{'username': follow.following.username, 'user_id': follow.following.id, 'photo_url': follow.following.photo_url} for follow in following]
+        following_list = [{'username': follow.following.username, 'user_id': follow.following.id, 'photo_url': follow.following.photo_url_out} for follow in following]
 
         result = {'result': 0, 'message': r'获取关注列表成功！', 'following': following_list}
         return JsonResponse(result)
@@ -149,7 +160,7 @@ def follow_user(request):
             return JsonResponse(result)
 
         if Follow.objects.filter(follower=user, following=following_user).exists():
-            result = {'result': 0, 'message': r'已关注该用户！'}
+            result = {'result': 4, 'message': r'已关注该用户！'}
             return JsonResponse(result)
 
         # 创建关注关系
@@ -170,8 +181,7 @@ def unfollow_user(request):
     if request.method == 'DELETE':
         username = request.session['username']
         user = User.objects.get(username=username)
-        following_username = request.POST.get('following_username')
-
+        following_username = request.GET.get('following_username')
         try:
             following_user = User.objects.get(username=following_username)
         except User.DoesNotExist:
@@ -204,6 +214,19 @@ def get_user_info(request):
         result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
 
+
+def get_other_info(request):
+    if request.method == 'GET':
+        user_id = request.GET.get('id')
+        user_data = User.objects.get(id=user_id).to_dic()
+        result = {'result': 0, 'message': r"返回成功", 'user_data': user_data}
+        return JsonResponse(result)
+
+    else:
+        result = {'result': 1, 'message': r'请求方式错误！'}
+        return JsonResponse(result)
+
+
 def get_intro(request):
     if request.method == 'GET':
         username = request.session['username']
@@ -214,18 +237,7 @@ def get_intro(request):
     else:
         result = {'result': 1, 'message': r'请求方式错误！'}
         return JsonResponse(result)
-
-
-def get_other_info(request):
-    if request.method == 'GET':
-        user_id = request.GET.get('user_id')
-        user_data = User.objects.get(id=user_id).to_simple_dic()
-        result = {'result': 0, 'message': r"返回成功", 'user_data': user_data}
-        return JsonResponse(result)
-
-    else:
-        result = {'result': 1, 'message': r'请求方式错误！'}
-        return JsonResponse(result)
+    
 
 def get_other_intro(request):
     if request.method == 'GET':

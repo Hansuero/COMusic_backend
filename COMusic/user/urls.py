@@ -13,8 +13,8 @@ urlpatterns = [
     path('show_following', show_following),
     path('follow_user', follow_user),
     path('unfollow_user', unfollow_user),
+    path('get_user_info', get_user_info),
     path('get_other_info', get_other_info),
     path('get_intro', get_intro),
     path('get_other_intro', get_other_intro),
-
 ]

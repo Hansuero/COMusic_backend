@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-_jxl_rl*bnhiqyx$6-l0qy20+!nv1p2p_f2j5_0)sr__-1zdz*
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 
@@ -83,7 +83,7 @@ WSGI_APPLICATION = 'COMusic.wsgi.application'
 
 # MySQL数据库配置
 mysql_ENGINE = 'django.db.backends.mysql'
-mysql_NAME = 'comusic_backend'
+mysql_NAME = 'comusic_new'
 mysql_USER = 'comusic'
 mysql_PASSWORD = '2121Jizu'
 mysql_HOST = '82.157.165.72'
